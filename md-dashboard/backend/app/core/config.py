@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     AZURE_AI_SEARCH_ENDPOINT: str
     AZURE_AI_SEARCH_API_KEY: str
 
+    # Gemini API (로컬 환경용, Azure OpenAI 대체)
+    GEMINI_API_KEY: str = ""
+    
     @property
     def DATABASE_URL(self) -> str:
         driver = "ODBC Driver 17 for SQL Server"
@@ -48,7 +51,7 @@ class Settings(BaseSettings):
             f"UID={self.DB_USER};"
             f"PWD={self.DB_PASSWORD};"
             f"Encrypt=yes;"
-            f"TrustServerCertificate=no;"
+            f"TrustServerCertificate=yes;"
             f"Connection Timeout=30;"
         )
         return f"mssql+pyodbc:///?odbc_connect={params}"

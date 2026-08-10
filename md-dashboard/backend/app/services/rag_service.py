@@ -4,34 +4,18 @@
 #   -> charts/md_insights JSON 스키마는 원본과 100% 동일. 아래 표시된 부분만 추가/변경.
 
 import json
-from azure.core.credentials import AzureKeyCredential
-from azure.search.documents import SearchClient
-from openai import AzureOpenAI
+import google.generativeai as genai
 from app.core.config import settings
 from app.services.tools import get_kpi_and_efficiency, get_inventory_risk, get_orders_date_range
 from app.services.period_parser import parse_period, to_card_label, PERIOD_INPUT_HINT, PERIOD_EXAMPLES
 
-openai_client = AzureOpenAI(
-    azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-    api_key=settings.AZURE_OPENAI_KEY,
-    api_version="2024-02-01"
-)
-
-search_client = SearchClient(
-    endpoint=settings.AZURE_AI_SEARCH_ENDPOINT,
-    index_name="policy-documents-index",
-    credential=AzureKeyCredential(settings.AZURE_AI_SEARCH_API_KEY)
-)
+# [변경] Azure OpenAI -> Gemini API (로컬 환경, 무료 티어)
+genai.configure(api_key=settings.GEMINI_API_KEY)
+gemini_model = genai.GenerativeModel("gemini-flash-lite-latest")
 
 def retrieve_policy_docs(query: str) -> str:
-    """Azure AI Search에서 검색어와 매칭되는 정책 문서 추출"""
-    try:
-        results = search_client.search(search_text=query, top=3)
-        chunks = [f"[{doc['related_policy']} 정책 / 담당부서: {doc['department']}]\n{doc['content']}" for doc in results]
-        return "\n\n".join(chunks) if chunks else "관련 정책 문서 없음"
-    except Exception as e:
-        print(f"RAG Retrieval Error: {e}")
-        return "정책 문서 검색 불가능"
+    """[임시] 정책 문서 검색 - 로컬 벡터 검색으로 교체 예정 (다음 단계)"""
+    return "정책 문서 검색 기능은 로컬 벡터 검색 전환 작업 중입니다."
 
 def classify_intent(user_prompt: str) -> str:
     """사용자의 질문 의도(Intent) 분류"""
@@ -170,17 +154,21 @@ def generate_sales_report(user_prompt: str) -> dict:
     """
 
     try:
-        response = openai_client.chat.completions.create(
-            model=settings.AZURE_DEPLOYMENT_NAME,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3,
-            response_format={"type": "json_object"}
+        # [변경] Azure OpenAI -> Gemini API 호출 방식으로 교체
+        # Gemini는 system/user 역할 분리 대신 system_instruction 파라미터를 씀
+        model_with_system = genai.GenerativeModel(
+            "gemini-flash-lite-latest",
+            system_instruction=system_prompt,
+        )
+        response = model_with_system.generate_content(
+            user_prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.3,
+                response_mime_type="application/json",
+            ),
         )
 
-        res_json = json.loads(response.choices[0].message.content)
+        res_json = json.loads(response.text)
         res_json["type"] = "report"
 
         # ============================================================
