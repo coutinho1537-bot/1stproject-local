@@ -74,6 +74,9 @@ export default function Forecast() {
           <p className="text-xs text-[#8A8D96] mt-1 truncate">
             향후 판매량, 예상 기말재고와 권장 발주량을 함께 검토합니다.
           </p>
+          <p className="text-[10px] text-[#8A8D96]/80 mt-0.5">
+            ※ 본 예측은 참고 자료이며, 발주 등 최종 의사결정의 책임은 사용자에게 있습니다.
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="bg-white/80 border border-white/90 px-3.5 py-2 rounded-2xl text-xs font-semibold shadow-sm text-[#3F4145]">

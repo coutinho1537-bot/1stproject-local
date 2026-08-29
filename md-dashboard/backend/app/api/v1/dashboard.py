@@ -17,6 +17,7 @@ from typing import List, Optional
 from app.models.goal_settings import GoalSettings
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.models.sales import Order
 from app.models.product import Product, ProductSku
 from app.models.inventory import Inventory
@@ -48,6 +49,8 @@ from app.schemas.dashboard import (
     TransferRecommendationResponse, #HUBS 탭 이동 권장에 사용
     GoalSettingsResponse, #목표값 설정
     GoalSettingsUpdate, #목표값 설정
+    AuthRequest, #역할별 접근 인증
+    AuthResponse, #역할별 접근 인증
 )
 
 router = APIRouter()
@@ -388,7 +391,10 @@ def get_filter_options(
 
 
 @router.get("/overview-filter-options", response_model=OverviewFilterOptionsResponse)
-def get_overview_filter_options(db: Session = Depends(get_db)):
+def get_overview_filter_options(
+    category_large: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+):
     """현황 탭 분석 조건에 사용하는 SQL Server 기반 필터 목록."""
     min_date, max_date = db.query(
         func.min(Order.order_datetime),
@@ -398,7 +404,7 @@ def get_overview_filter_options(db: Session = Depends(get_db)):
     if min_date is None or max_date is None:
         raise HTTPException(status_code=404, detail="ORDERS 테이블에 기간 데이터가 없습니다.")
 
-    category_large = [
+    category_large_options = [
         value
         for (value,) in (
             db.query(ProductSku.category_large)
@@ -408,16 +414,18 @@ def get_overview_filter_options(db: Session = Depends(get_db)):
             .all()
         )
     ]
+
+    middle_query = (
+        db.query(ProductSku.category_middle)
+        .filter(ProductSku.category_middle.isnot(None))
+        .distinct()
+    )
+    if category_large:
+        middle_query = middle_query.filter(ProductSku.category_large == category_large)
     category_middle = [
-        value
-        for (value,) in (
-            db.query(ProductSku.category_middle)
-            .filter(ProductSku.category_middle.isnot(None))
-            .distinct()
-            .order_by(ProductSku.category_middle)
-            .all()
-        )
+        value for (value,) in middle_query.order_by(ProductSku.category_middle).all()
     ]
+
     hubs = [
         value
         for (value,) in (
@@ -432,7 +440,7 @@ def get_overview_filter_options(db: Session = Depends(get_db)):
     return OverviewFilterOptionsResponse(
         min_date=min_date.date().isoformat(),
         max_date=max_date.date().isoformat(),
-        category_large=category_large,
+        category_large=category_large_options,
         category_middle=category_middle,
         seasons=[
             "봄(2월1일-4월30일)",
@@ -1028,3 +1036,15 @@ def update_goal_settings(
     db.commit()
     db.refresh(goal)
     return goal
+
+
+@router.post("/auth", response_model=AuthResponse)
+def check_role_password(payload: AuthRequest):
+    """입력한 비밀번호에 따라 역할(CEO/MD/재고담당자)을 판별."""
+    if payload.password == settings.ROLE_CEO_PASSWORD and settings.ROLE_CEO_PASSWORD:
+        return AuthResponse(role="ceo", success=True)
+    if payload.password == settings.ROLE_MD_PASSWORD and settings.ROLE_MD_PASSWORD:
+        return AuthResponse(role="md", success=True)
+    if payload.password == settings.ROLE_STOCK_PASSWORD and settings.ROLE_STOCK_PASSWORD:
+        return AuthResponse(role="stock", success=True)
+    return AuthResponse(role="", success=False)

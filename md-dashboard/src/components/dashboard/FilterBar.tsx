@@ -161,9 +161,9 @@ export default function FilterBar({
   const [hub, setHub] = useState('전체');
   const [activePreset, setActivePreset] = useState<PeriodPreset | null>(null);
 
+    // 최초 1회: 기간(min/max date) 초기화용
   useEffect(() => {
     const controller = new AbortController();
-
     fetch(`${API_BASE_URL}/api/v1/dashboard/overview-filter-options`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('분석 조건을 불러오지 못했습니다.');
@@ -177,9 +177,34 @@ export default function FilterBar({
       .catch((requestError: Error) => {
         if (requestError.name !== 'AbortError') setError(requestError.message);
       });
-
     return () => controller.abort();
   }, []);
+
+  // categoryLarge가 바뀔 때마다: 그 대카테고리에 맞는 중카테고리 목록 다시 조회
+  useEffect(() => {
+    const controller = new AbortController();
+    const url = categoryLarge === '전체'
+      ? `${API_BASE_URL}/api/v1/dashboard/overview-filter-options`
+      : `${API_BASE_URL}/api/v1/dashboard/overview-filter-options?category_large=${encodeURIComponent(categoryLarge)}`;
+
+    fetch(url, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('분석 조건을 불러오지 못했습니다.');
+        return response.json() as Promise<FilterOptions>;
+      })
+      .then((data) => {
+        setOptions((prev) => prev ? { ...prev, category_middle: data.category_middle } : data);
+        // 대카테고리가 바뀌었는데, 이전에 골랐던 중카테고리가 새 목록에 없으면 "전체"로 리셋
+        if (!data.category_middle.includes(categoryMiddle)) {
+          setCategoryMiddle('전체');
+        }
+      })
+      .catch((requestError: Error) => {
+        if (requestError.name !== 'AbortError') console.error(requestError.message);
+      });
+
+    return () => controller.abort();
+  }, [categoryLarge]);
 
   const minDate = useMemo(() => options ? parseDate(options.min_date) : null, [options]);
   const maxDate = useMemo(() => options ? parseDate(options.max_date) : null, [options]);

@@ -77,14 +77,18 @@ export default function KpiCards({
   const achievementRate = goalAmount > 0 ? (currentSales / goalAmount) * 100 : 0;
   const remainingAmount = Math.max(goalAmount - currentSales, 0);
   const exceededAmount = Math.max(currentSales - goalAmount, 0);
-  const valuePlaceholder = loading || error ? '—' : null;
+  const valuePlaceholder = loading ? '—' : error ? '오류' : null;
   const moneyDisplay: MoneyDisplayProps = { currency, exchangeRate };
 
   return (
     <>
       <div className="rounded-[28px] border border-white/90 bg-white/35 p-6 shadow-[0_20px_35px_-10px_rgba(160,175,200,0.16),inset_0_1px_2px_0_rgba(255,255,255,0.75)] backdrop-blur-md">
         <h3 className="mb-4 text-base font-extrabold tracking-tight text-[#3F4145]">목표와 달성</h3>
-
+        {error && (
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50/60 px-4 py-3 text-xs font-semibold text-red-500">
+            ⚠ {error}
+          </div>
+        )}
         <div className="space-y-5">
           <section className="rounded-[22px] border border-white/80 bg-white/45 p-5" aria-labelledby="sales-goal-title">
             <div className="mb-4">

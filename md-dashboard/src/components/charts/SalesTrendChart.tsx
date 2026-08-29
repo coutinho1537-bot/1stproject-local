@@ -105,6 +105,7 @@ export default function SalesTrendChart({
   goalAmount,
   currency,
   exchangeRate,
+  error,
 }: {
   data: SalesTrendData | null;
   unit: SalesTrendUnit;
@@ -112,6 +113,7 @@ export default function SalesTrendChart({
   goalAmount: number;
   currency: DisplayCurrency;
   exchangeRate: number;
+  error?: string;
 }) {
   const hasData = Boolean(data?.points.length);
   const [visibleSeries, setVisibleSeries] = React.useState<SeriesKey[]>(series.map((item) => item.netKey));
@@ -165,9 +167,9 @@ export default function SalesTrendChart({
 
       <div className="mb-4 flex flex-wrap items-center justify-start gap-2" aria-label="순매출 집계 단위">
         {([
-          ['week', '1주일'],
-          ['month', '한달'],
-          ['year', '1년'],
+          ['week', '주간'],
+          ['month', '월별'],
+          ['year', '연도별'],
         ] as const).map(([value, label]) => (
           <button
             key={value}
@@ -218,8 +220,10 @@ export default function SalesTrendChart({
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-full w-full items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-white/30 text-sm font-medium text-[#8A8D96]">
-            조회된 매출 데이터가 없습니다.
+          <div className={`flex h-full w-full items-center justify-center rounded-2xl border border-dashed text-sm font-medium ${
+            error ? 'border-red-200 bg-red-50/50 text-red-500' : 'border-gray-200 bg-white/30 text-[#8A8D96]'
+          }`}>
+            {error || '조회된 매출 데이터가 없습니다.'}
           </div>
         )}
       </div>

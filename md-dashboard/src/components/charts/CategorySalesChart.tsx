@@ -56,9 +56,9 @@ interface CategoryDataItem {
 
 interface CategorySalesChartProps {
   data?: CategoryDataItem[]; // 백엔드에서 전달받는 데이터 (Optional)
+  error?: string;
 }
-
-export default function CategorySalesChart({ data }: CategorySalesChartProps) {
+export default function CategorySalesChart({ data, error }: CategorySalesChartProps) {
   // 데이터 검증 (데이터가 없거나 빈 배열일 경우 판단)
   const hasData = data && Array.isArray(data) && data.length > 0;
 
@@ -87,8 +87,10 @@ export default function CategorySalesChart({ data }: CategorySalesChartProps) {
           ))}
         </div>
       ) : (
-        <div className="flex h-[200px] w-full items-center justify-center text-sm font-medium text-[#8A8D96] bg-white/30 rounded-2xl border border-dashed border-gray-200">
-          조회된 카테고리 데이터가 없습니다.
+        <div className={`flex h-[200px] w-full items-center justify-center text-sm font-medium rounded-2xl border border-dashed ${
+          error ? 'border-red-200 bg-red-50/50 text-red-500' : 'border-gray-200 bg-white/30 text-[#8A8D96]'
+        }`}>
+          {error || '조회된 카테고리 데이터가 없습니다.'}
         </div>
       )}
     </div>

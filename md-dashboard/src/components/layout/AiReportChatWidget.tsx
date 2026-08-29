@@ -25,10 +25,18 @@ export default function AiReportChatWidget() {
   const [chatMessage, setChatMessage] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-
+  // 도움말 팝업 및 키워드 목록
+  const [showHelp, setShowHelp] = useState(false);
+  const keywords = [
+    "리포트", "보고서", "액션플랜", "분석", "현황", "추이",
+    "실적", "재고", "매출", "지표", "작성", "수치"
+  ];
   useEffect(() => {
     setMounted(true);
   }, []);
+  const handleKeywordClick = (word: string) => {
+    setPrompt((prev) => (prev ? `${prev} ${word}` : word));
+  };
 const handleExcelDownload = () => {
   if (!reportData) {
     alert('다운로드할 리포트 데이터가 없습니다.');
@@ -317,11 +325,49 @@ const handleExcelDownload = () => {
   return (
     <>
       {/* 1. 사이드바 입력 위젯 */}
-      <div className="flex flex-col h-full p-3.5 bg-white/80 backdrop-blur-sm rounded-2xl border border-white shadow-[0_10px_20px_-5px_rgba(140,150,170,0.15)] text-xs justify-between">
+      <div className="relative flex flex-col h-full p-3.5 bg-white/80 backdrop-blur-sm rounded-2xl border border-white shadow-[0_10px_20px_-5px_rgba(140,150,170,0.15)] text-xs justify-between">
         <div className="font-bold text-[#3F4145] mb-2 flex items-center justify-between border-b border-black/5 pb-2">
           <span className="flex items-center gap-1.5">🤖 AI 리포트 생성기</span>
+          <button
+            type="button"
+            onClick={() => setShowHelp(!showHelp)}
+            className="w-5 h-5 flex items-center justify-center text-[11px] font-bold text-[#8A8D96] hover:text-[#3F4145] bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition-all cursor-pointer shadow-sm"
+            title="키워드 가이드"
+          >
+            ?
+          </button>
         </div>
-
+        {showHelp && (
+          <div className="absolute left-0 bottom-full mb-2 w-64 p-3 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-2xl z-50 text-xs">
+            <div className="flex justify-between items-center pb-1.5 mb-2 border-b border-slate-100 font-bold text-[#3F4145]">
+              <span>💡 리포트 요청 키워드</span>
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold px-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[#8A8D96] mb-2 leading-tight text-[11px]">
+              아래 키워드가 포함되면 리포트가 생성됩니다. (클릭 시 입력창에 추가)
+            </p>
+            <div className="flex flex-wrap gap-1 mb-2.5 max-h-28 overflow-y-auto">
+              {keywords.map((kw, i) => (
+                <span
+                  key={i}
+                  onClick={() => handleKeywordClick(kw)}
+                  className="px-1.5 py-0.5 bg-slate-100 hover:bg-blue-50 text-[#3F4145] hover:text-blue-600 rounded-md cursor-pointer transition-colors text-[11px] font-medium"
+                >
+                  #{kw}
+                </span>
+              ))}
+            </div>
+            <div className="bg-blue-50/70 p-2 rounded-xl text-[10px] text-blue-700 font-medium">
+              <strong>예시:</strong> "26년 8월 매출 리포트 보여줘"
+            </div>
+          </div>
+        )}
         <div className="flex-1 flex flex-col justify-center items-center py-3 bg-white/50 rounded-xl border border-gray-100 mb-2 min-h-[80px]">
           {chatMessage ? (
             <p className="text-[#3F4145] text-[11px] text-center px-3 leading-relaxed font-medium break-keep">
@@ -533,9 +579,14 @@ const handleExcelDownload = () => {
 
               {/* 푸터 */}
               <div className="px-8 py-4 border-t border-gray-100 bg-white flex justify-between items-center text-xs text-[#8A8D96]">
-                <span className="shrink-0">
-                  {reportData?.disclaimer ||
-                    '※ ATV/UPT는 order_id 데이터 부재로 order_item_id 단위 근사치입니다.'}
+                <span className="shrink-0 flex flex-col gap-0.5">
+                  <span>
+                    {reportData?.disclaimer ||
+                      '※ ATV/UPT는 order_id 데이터 부재로 order_item_id 단위 근사치입니다.'}
+                  </span>
+                  <span className="text-[10px] text-gray-400">
+                    ※ 본 AI 리포트는 참고 자료이며, 이를 활용한 발주·재고 등 최종 의사결정의 책임은 사용자에게 있습니다.
+                  </span>
                 </span>
                 <div className="flex gap-2 shrink-0 ml-4">
                   <button

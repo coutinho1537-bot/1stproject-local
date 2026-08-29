@@ -39,6 +39,11 @@ class Settings(BaseSettings):
 
     # Gemini API (로컬 환경용, Azure OpenAI 대체)
     GEMINI_API_KEY: str = ""
+
+    # 역할별 접근 비밀번호 (CEO/MD/재고담당자)
+    ROLE_CEO_PASSWORD: str = ""
+    ROLE_MD_PASSWORD: str = ""
+    ROLE_STOCK_PASSWORD: str = ""
     
     @property
     def DATABASE_URL(self) -> str:

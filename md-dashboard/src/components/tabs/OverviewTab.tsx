@@ -17,10 +17,12 @@ export default function OverviewTab() {
   const [salesTrendData, setSalesTrendData] = useState<SalesTrendData | null>(null);
   const [salesTrendUnit, setSalesTrendUnit] = useState<SalesTrendUnit>('month');
   const [categorySalesData, setCategorySalesData] = useState([]);
+  const [categorySalesError, setCategorySalesError] = useState('');
   const [filters, setFilters] = useState<OverviewFilters | null>(null);
   const [kpiData, setKpiData] = useState<OverviewKpiData | null>(null);
   const [kpiLoading, setKpiLoading] = useState(false);
   const [kpiError, setKpiError] = useState('');
+  const [salesTrendError, setSalesTrendError] = useState('');
   const [goalSettings, setGoalSettings] = useState<GoalSettings>({
     day: 3287671,
     week: 23076923,
@@ -57,10 +59,17 @@ export default function OverviewTab() {
 
   // 카테고리별 매출 API 호출
   useEffect(() => {
+    setCategorySalesError('');
     fetch(`${apiBaseUrl}/api/v1/dashboard/category-sales`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('카테고리별 매출 데이터를 불러오지 못했습니다.');
+        return res.json();
+      })
       .then((data) => setCategorySalesData(data))
-      .catch((err) => console.error('Category sales fetch error:', err));
+      .catch((err) => {
+        console.error('Category sales fetch error:', err);
+        setCategorySalesError('카테고리별 매출 데이터를 불러오지 못했습니다. 서버 연결을 확인해주세요.');
+      });
   }, [apiBaseUrl]);
 
   // 목표 설정값을 백엔드에서 불러오기 (최초 1회)
@@ -124,6 +133,7 @@ export default function OverviewTab() {
     if (filters.season !== '전체') params.set('season', filters.season);
     if (filters.hub !== '전체') params.set('hub', filters.hub);
 
+    setSalesTrendError('');
     fetch(`${apiBaseUrl}/api/v1/dashboard/sales-trend?${params}`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('순매출 추이 데이터를 불러오지 못했습니다.');
@@ -131,9 +141,11 @@ export default function OverviewTab() {
       })
       .then(setSalesTrendData)
       .catch((requestError: Error) => {
-        if (requestError.name !== 'AbortError') console.error(requestError.message);
+        if (requestError.name !== 'AbortError') {
+          console.error(requestError.message);
+          setSalesTrendError('순매출 추이 데이터를 불러오지 못했습니다. 서버 연결을 확인해주세요.');
+        }
       });
-
     return () => controller.abort();
   }, [filters, salesTrendUnit, apiBaseUrl]);
 
@@ -177,6 +189,7 @@ export default function OverviewTab() {
           goalAmount={goalAmount}
           currency={currency}
           exchangeRate={exchangeRate}
+          error={salesTrendError}
         />
       </section>
 
@@ -189,7 +202,7 @@ export default function OverviewTab() {
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         <div className="lg:col-span-2 h-full">
           {/* data 전달 */}
-          <CategorySalesChart data={categorySalesData} />
+          <CategorySalesChart data={categorySalesData} error={categorySalesError} />
         </div>
         <div className="lg:col-span-1 h-full">
           <InventoryStatus />
